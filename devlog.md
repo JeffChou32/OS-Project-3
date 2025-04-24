@@ -7,3 +7,8 @@
 - Going with Java 
 - First step: implement the create command. I’ll write a Header class to handle the first 512-byte block, storing the magic number, root ID, and next block ID. 
 - Java's long type will be used for keys/values, since unsigned integers are a pain and the spec allows signed longs in Java.
+
+# 4/24/2025 3:00 PM
+- Start with create command, initialize new file with 512 byte header block
+- magic number, root block, next block id
+- randomaccessfile and bytebuffer libraries for big endian writes
