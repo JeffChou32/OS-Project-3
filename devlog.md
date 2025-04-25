@@ -12,3 +12,8 @@
 - Start with create command, initialize new file with 512 byte header block
 - magic number, root block, next block id
 - randomaccessfile and bytebuffer libraries for big endian writes
+
+# 4/24/2025 6:00 PM
+- ByteBuffer handled alignment and padding. 
+- Confirm that the magic number and block structure are exactly 512 bytes. 
+- Next: define the Header class and add methods to load/save it from a file, since later commands will rely on keeping the header in sync.
