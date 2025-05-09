@@ -17,3 +17,13 @@
 - ByteBuffer handled alignment and padding. 
 - Confirm that the magic number and block structure are exactly 512 bytes. 
 - Next: define the Header class and add methods to load/save it from a file, since later commands will rely on keeping the header in sync.
+
+# 5/9/2025 12:36 PM
+- Create insert function
+- Inserts a key/value into b-tree stored in index
+- create node class
+- locate root - if 0, new node
+
+# 5/9/2025 5:00 PM
+- added print function to easily print values in nodes
+- system inserts and can print , validating structure 
