@@ -73,44 +73,36 @@ public class Project3 {
 
     public static void main(String[] args) throws IOException {
         if (args.length < 2) {
-            System.err.println("Usage: project3 <create|insert> ...");
+            System.err.println("Enter some arguments");
             return;
         }
 
         String command = args[0];
-
         switch (command) {
-            case "create" -> handleCreate(args);
-            case "insert" -> handleInsert(args);
-            case "print" -> handlePrint(args);
+            case "create" -> createFile(args);
+            case "insert" -> insert(args);
+            case "print" -> print(args);
             default -> System.err.println("Unknown command: " + command);
         }
     }
 
-    private static void handleCreate(String[] args) throws IOException {
-        if (args.length < 2) {
-            System.err.println("Usage: project3 create <filename>");
-            return;
-        }
-
+    private static void createFile(String[] args) throws IOException {
         String filename = args[1];
         File file = new File(filename);
         if (file.exists()) {
-            System.err.println("Error: File already exists.");
+            System.err.println("File already exists.");
             return;
         }
-
         try (RandomAccessFile raf = new RandomAccessFile(file, "rw")) {
             Header header = new Header(0, 1);
             header.write(raf);
         }
-
         System.out.println("Index file created: " + filename);
     }
 
-    private static void handleInsert(String[] args) throws IOException {
+    private static void insert(String[] args) throws IOException {
         if (args.length < 4) {
-            System.err.println("Usage: project3 insert <filename> <key> <value>");
+            System.err.println("Needs 'project3 insert <filename> <key> <value>'");
             return;
         }
 
@@ -143,7 +135,7 @@ public class Project3 {
             }
         }
     }
-    private static void handlePrint(String[] args) throws IOException {
+    private static void print(String[] args) throws IOException {
         if (args.length < 2) {
             System.err.println("Usage: project3 print <filename>");
             return;

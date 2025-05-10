@@ -27,3 +27,7 @@
 # 5/9/2025 5:00 PM
 - added print function to easily print values in nodes
 - system inserts and can print , validating structure 
+
+# 5/10/2025 9:46 AM
+- implement search at least
+- read root node and traverses tree, comparing keys 
