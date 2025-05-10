@@ -82,6 +82,9 @@ public class Project3 {
             case "create" -> createFile(args);
             case "insert" -> insert(args);
             case "print" -> print(args);
+            case "search" -> search(args);
+            case "load" -> load(args);
+            case "extract" -> extract(args);
             default -> System.err.println("Unknown command: " + command);
         }
     }
@@ -114,30 +117,96 @@ public class Project3 {
             Header header = Header.read(raf);
 
             if (header.rootId == 0) {
-                // Tree is empty, create root node
-                long rootId = header.nextBlockId;
-                Node node = new Node();
-                node.blockId = rootId;
-                node.numKeys = 1;
-                node.keys[0] = key;
-                node.values[0] = value;
-
-                node.write(raf, rootId);
-
+                long rootId = header.nextBlockId++;
+                Node root = new Node();
+                root.blockId = rootId;
+                root.numKeys = 1;
+                root.keys[0] = key;
+                root.values[0] = value;
+                root.write(raf, rootId);
                 header.rootId = rootId;
-                header.nextBlockId++;
                 header.write(raf);
-
                 System.out.println("Inserted into new root node.");
             } else {
-                System.out.println("Insert into existing tree not yet implemented.");
-                // Later: read root node, insert recursively
+                Node root = readNode(raf, header.rootId);
+                if (root.numKeys == 19) {
+                    long newRootId = header.nextBlockId++;
+                    Node newRoot = new Node();
+                    newRoot.blockId = newRootId;
+                    newRoot.children[0] = root.blockId;
+                    splitChild(raf, header, newRoot, 0, root);
+                    insertNonFull(raf, header, newRoot, key, value);
+                    header.rootId = newRootId;
+                    header.write(raf);
+                } else {
+                    insertNonFull(raf, header, root, key, value);
+                }
             }
         }
     }
+    private static void insertNonFull(RandomAccessFile raf, Header header, Node node, long key, long value) throws IOException {
+        int i = node.numKeys - 1;
+
+        if (node.children[0] == 0) { // leaf node
+            while (i >= 0 && key < node.keys[i]) {
+                node.keys[i + 1] = node.keys[i];
+                node.values[i + 1] = node.values[i];
+                i--;
+            }
+            node.keys[i + 1] = key;
+            node.values[i + 1] = value;
+            node.numKeys++;
+            node.write(raf, node.blockId);
+        } else {
+            while (i >= 0 && key < node.keys[i]) i--;
+            i++;
+            Node child = readNode(raf, node.children[i]);
+            if (child.numKeys == 19) {
+                splitChild(raf, header, node, i, child);
+                if (key > node.keys[i]) i++;
+            }
+            child = readNode(raf, node.children[i]);
+            insertNonFull(raf, header, child, key, value);
+        }
+    }
+
+    private static void splitChild(RandomAccessFile raf, Header header, Node parent, int index, Node fullChild) throws IOException {
+        Node newChild = new Node();
+        newChild.blockId = header.nextBlockId++;
+        newChild.parentId = parent.blockId;
+        newChild.numKeys = 9;
+
+        for (int j = 0; j < 9; j++) {
+            newChild.keys[j] = fullChild.keys[j + 10];
+            newChild.values[j] = fullChild.values[j + 10];
+        }
+
+        if (fullChild.children[0] != 0) {
+            for (int j = 0; j < 10; j++) {
+                newChild.children[j] = fullChild.children[j + 10];
+            }
+        }
+
+        fullChild.numKeys = 9;
+
+        for (int j = parent.numKeys; j > index; j--) {
+            parent.children[j + 1] = parent.children[j];
+            parent.keys[j] = parent.keys[j - 1];
+            parent.values[j] = parent.values[j - 1];
+        }
+
+        parent.children[index + 1] = newChild.blockId;
+        parent.keys[index] = fullChild.keys[9];
+        parent.values[index] = fullChild.values[9];
+        parent.numKeys++;
+
+        fullChild.write(raf, fullChild.blockId);
+        newChild.write(raf, newChild.blockId);
+        parent.write(raf, parent.blockId);
+    }
     private static void print(String[] args) throws IOException {
         if (args.length < 2) {
-            System.err.println("Usage: project3 print <filename>");
+            System.err.println("Needs 'project3 print <filename>'");
             return;
         }
         String filename = args[1];
@@ -170,5 +239,99 @@ public class Project3 {
         for (int i = 0; i < 20; i++) node.children[i] = buf.getLong();
 
         return node;
+    }
+
+    private static void search(String[] args) throws IOException {
+        if (args.length < 3) {
+            System.err.println("Needs 'project3 search <filename> <key>'");
+            return;
+        }
+
+        String filename = args[1];
+        long targetKey = Long.parseLong(args[2]);
+
+        try (RandomAccessFile raf = new RandomAccessFile(filename, "r")) {
+            Header header = Header.read(raf);
+            if (header.rootId == 0) {
+                System.out.println("Tree is empty.");
+                return;
+            }
+
+            long currentBlockId = header.rootId;
+            while (currentBlockId != 0) {
+                Node node = readNode(raf, currentBlockId);
+
+                // Check current node for the key
+                for (int i = 0; i < node.numKeys; i++) {
+                    if (node.keys[i] == targetKey) {
+                        System.out.println("Key: " + node.keys[i] + ", Value: " + node.values[i]);
+                        return;
+                    } else if (targetKey < node.keys[i]) {
+                        currentBlockId = node.children[i];
+                        continue;
+                    }
+                }
+
+                // Move to last child if key > all keys
+                currentBlockId = node.children[node.numKeys];
+            }
+
+            System.out.println("Key not found.");
+        }
+    }
+    private static void load(String[] args) throws IOException {
+    if (args.length < 3) {
+        System.err.println("Need 'project3 load <indexfile> <csvfile>'");
+        return;
+    }
+    String indexFile = args[1];
+    String csvFile = args[2];
+
+    try (BufferedReader reader = new BufferedReader(new FileReader(csvFile))) {
+        String line;
+        while ((line = reader.readLine()) != null) {
+            String[] parts = line.split(",");
+            if (parts.length == 2) {
+                insert(new String[] {"insert", indexFile, parts[0].trim(), parts[1].trim()});
+            }
+        }
+    }
+}
+
+    private static void extract(String[] args) throws IOException {
+        if (args.length < 3) {
+            System.err.println("Needs 'project3 extract <indexfile> <outputfile>'");
+            return;
+        }
+        String indexFile = args[1];
+        String outputFile = args[2];
+
+        File file = new File(outputFile);
+        if (file.exists()) {
+            System.err.println("File already exists.");
+            return;
+        }
+
+        try (RandomAccessFile raf = new RandomAccessFile(indexFile, "r");
+            BufferedWriter writer = new BufferedWriter(new FileWriter(outputFile))) {
+
+            Header header = Header.read(raf);
+            if (header.rootId == 0) {
+                System.out.println("Tree is empty.");
+                return;
+            }
+            extractRecursive(raf, header.rootId, writer);
+        }
+    }
+
+    private static void extractRecursive(RandomAccessFile raf, long blockId, BufferedWriter writer) throws IOException {
+        if (blockId == 0) return;
+        Node node = readNode(raf, blockId);
+        for (int i = 0; i < node.numKeys; i++) {
+            extractRecursive(raf, node.children[i], writer);
+            writer.write(node.keys[i] + "," + node.values[i]);
+            writer.newLine();
+        }
+        extractRecursive(raf, node.children[node.numKeys], writer);
     }
 }

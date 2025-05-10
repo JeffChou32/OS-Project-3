@@ -31,3 +31,10 @@
 # 5/10/2025 9:46 AM
 - implement search at least
 - read root node and traverses tree, comparing keys 
+
+# 5/10/2025 5:00 PM
+- Implmented the rest of insert
+- implemented search, load, extract
+- All numeric values are written and read as 8-byte big-endian longs
+- 19 keys/20 children per node as per minimum degree 10
+- Block and header formats 512 bytes, big-endian
