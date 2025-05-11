@@ -100,7 +100,7 @@ public class Project3 {
         System.out.println("Index file created: " + filename);
     }
 
-    private static void insert(String[] args) throws IOException {
+    private static void insert(String[] args) throws IOException { //parse key/value
         if (args.length < 4) {
             System.err.println("Needs 'project3 insert <filename> <key> <value>'");
             return;
@@ -113,7 +113,7 @@ public class Project3 {
         try (RandomAccessFile raf = new RandomAccessFile(filename, "rw")) {
             Header header = Header.read(raf);
 
-            if (header.rootId == 0) {
+            if (header.rootId == 0) { //if tree empty, create root
                 long rootId = header.nextBlockId++;
                 Node root = new Node();
                 root.blockId = rootId;
@@ -124,7 +124,7 @@ public class Project3 {
                 header.rootId = rootId;
                 header.write(raf);
                 System.out.println("Inserted into new root node.");
-            } else {
+            } else { //if root is full, splits and promotes middle key
                 Node root = readNode(raf, header.rootId);
                 if (root.numKeys == 19) {
                     long newRootId = header.nextBlockId++;
@@ -135,7 +135,7 @@ public class Project3 {
                     insertNonFull(raf, header, newRoot, key, value);
                     header.rootId = newRootId;
                     header.write(raf);
-                } else {
+                } else { //if not full, insert
                     insertNonFull(raf, header, root, key, value);
                 }
             }
@@ -144,7 +144,7 @@ public class Project3 {
     private static void insertNonFull(RandomAccessFile raf, Header header, Node node, long key, long value) throws IOException {
         int i = node.numKeys - 1;
 
-        if (node.children[0] == 0) { // leaf node
+        if (node.children[0] == 0) { //if leaf node, inserts in sorted order
             while (i >= 0 && key < node.keys[i]) {
                 node.keys[i + 1] = node.keys[i];
                 node.values[i + 1] = node.values[i];
@@ -154,7 +154,7 @@ public class Project3 {
             node.values[i + 1] = value;
             node.numKeys++;
             node.write(raf, node.blockId);
-        } else {
+        } else { //if not leaf, goes to correct child, splits it if full, recalculate child index and inserts
             while (i >= 0 && key < node.keys[i]) i--;
             i++;
             Node child = readNode(raf, node.children[i]);
@@ -167,7 +167,7 @@ public class Project3 {
         }
     }
 
-    private static void splitChild(RandomAccessFile raf, Header header, Node parent, int index, Node fullChild) throws IOException {
+    private static void splitChild(RandomAccessFile raf, Header header, Node parent, int index, Node fullChild) throws IOException { //create new node with half of keys
         Node newChild = new Node();
         newChild.blockId = header.nextBlockId++;
         newChild.parentId = parent.blockId;
@@ -192,16 +192,17 @@ public class Project3 {
             parent.values[j] = parent.values[j - 1];
         }
 
-        parent.children[index + 1] = newChild.blockId;
+        parent.children[index + 1] = newChild.blockId; //promote middle key to parent
         parent.keys[index] = fullChild.keys[9];
         parent.values[index] = fullChild.values[9];
         parent.numKeys++;
 
-        fullChild.write(raf, fullChild.blockId);
+        fullChild.write(raf, fullChild.blockId); //update file
         newChild.write(raf, newChild.blockId);
         parent.write(raf, parent.blockId);
     }
-    private static void print(String[] args) throws IOException {
+
+    private static void print(String[] args) throws IOException { //open file and print all key/value pairs
         if (args.length < 2) {
             System.err.println("Needs 'project3 print <filename>'");
             return;
@@ -220,33 +221,28 @@ public class Project3 {
             }
         }
     }
-    private static Node readNode(RandomAccessFile raf, long blockId) throws IOException {
+    private static Node readNode(RandomAccessFile raf, long blockId) throws IOException { //reads a 512 byte block and extracts fields into Node
         byte[] block = new byte[BLOCK_SIZE];
         raf.seek(blockId * BLOCK_SIZE);
         raf.readFully(block);
         ByteBuffer buf = ByteBuffer.wrap(block);
-
         Node node = new Node();
         node.blockId = buf.getLong();
         node.parentId = buf.getLong();
         node.numKeys = (int) buf.getLong();
-
         for (int i = 0; i < 19; i++) node.keys[i] = buf.getLong();
         for (int i = 0; i < 19; i++) node.values[i] = buf.getLong();
         for (int i = 0; i < 20; i++) node.children[i] = buf.getLong();
-
         return node;
     }
 
-    private static void search(String[] args) throws IOException {
+    private static void search(String[] args) throws IOException { //looks up key
         if (args.length < 3) {
             System.err.println("Needs 'project3 search <filename> <key>'");
             return;
         }
-
         String filename = args[1];
         long targetKey = Long.parseLong(args[2]);
-
         try (RandomAccessFile raf = new RandomAccessFile(filename, "r")) {
             Header header = Header.read(raf);
             if (header.rootId == 0) {
@@ -267,30 +263,30 @@ public class Project3 {
                 }
                 currentBlockId = node.children[node.numKeys];
             }
-
             System.out.println("Key not found.");
         }
     }
-    private static void load(String[] args) throws IOException {
-    if (args.length < 3) {
-        System.err.println("Need 'project3 load <indexfile> <csvfile>'");
-        return;
-    }
-    String indexFile = args[1];
-    String csvFile = args[2];
 
-    try (BufferedReader reader = new BufferedReader(new FileReader(csvFile))) {
-        String line;
-        while ((line = reader.readLine()) != null) {
-            String[] parts = line.split(",");
-            if (parts.length == 2) {
-                insert(new String[] {"insert", indexFile, parts[0].trim(), parts[1].trim()});
+    private static void load(String[] args) throws IOException { //load from csv
+        if (args.length < 3) {
+            System.err.println("Need 'project3 load <indexfile> <csvfile>'");
+            return;
+        }
+        String indexFile = args[1];
+        String csvFile = args[2];
+
+        try (BufferedReader reader = new BufferedReader(new FileReader(csvFile))) { //reads line by line, call insert() for each entry
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String[] parts = line.split(",");
+                if (parts.length == 2) {
+                    insert(new String[] {"insert", indexFile, parts[0].trim(), parts[1].trim()});
+                }
             }
         }
     }
-}
 
-    private static void extract(String[] args) throws IOException {
+    private static void extract(String[] args) throws IOException { //write tree to csv
         if (args.length < 3) {
             System.err.println("Needs 'project3 extract <indexfile> <outputfile>'");
             return;
@@ -298,13 +294,12 @@ public class Project3 {
         String indexFile = args[1];
         String outputFile = args[2];
 
-        File file = new File(outputFile);
+        File file = new File(outputFile); 
         if (file.exists()) {
             System.err.println("File already exists.");
             return;
         }
-
-        try (RandomAccessFile raf = new RandomAccessFile(indexFile, "r");
+        try (RandomAccessFile raf = new RandomAccessFile(indexFile, "r"); //open index file and output CSV
             BufferedWriter writer = new BufferedWriter(new FileWriter(outputFile))) {
 
             Header header = Header.read(raf);
@@ -316,10 +311,10 @@ public class Project3 {
         }
     }
 
-    private static void extractRecursive(RandomAccessFile raf, long blockId, BufferedWriter writer) throws IOException {
+    private static void extractRecursive(RandomAccessFile raf, long blockId, BufferedWriter writer) throws IOException { //in order traversal        
         if (blockId == 0) return;
-        Node node = readNode(raf, blockId);
-        for (int i = 0; i < node.numKeys; i++) {
+        Node node = readNode(raf, blockId); 
+        for (int i = 0; i < node.numKeys; i++) { //walks tree in sorted order (left child, key, right child)
             extractRecursive(raf, node.children[i], writer);
             writer.write(node.keys[i] + "," + node.values[i]);
             writer.newLine();
