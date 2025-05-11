@@ -3,14 +3,14 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 
 public class Project3 {
-    static final int BLOCK_SIZE = 512;
-    static final String MAGIC = "4348PRJ3";
+    static int BLOCK_SIZE = 512;
+    static String MAGIC = "4348PRJ3";
 
     static class Header {
-        long rootId;
+        long rootId; //root node block ID
         long nextBlockId;
 
-        static Header read(RandomAccessFile raf) throws IOException {
+        static Header read(RandomAccessFile raf) throws IOException { //loads first block, checks magic #, reads rootID/nextBlockID
             raf.seek(0);
             byte[] block = new byte[BLOCK_SIZE];
             raf.readFully(block);
@@ -26,7 +26,7 @@ public class Project3 {
             return new Header(rootId, nextBlockId);
         }
 
-        void write(RandomAccessFile raf) throws IOException {
+        void write(RandomAccessFile raf) throws IOException { //write 512 byte header block 
             byte[] block = new byte[BLOCK_SIZE];
             ByteBuffer buf = ByteBuffer.wrap(block);
 
@@ -49,23 +49,20 @@ public class Project3 {
     static class Node {
         long blockId;
         long parentId = 0;
-        int numKeys = 0;
+        int numKeys = 0; //keys currently used
         long[] keys = new long[19];
         long[] values = new long[19];
         long[] children = new long[20];
 
-        void write(RandomAccessFile raf, long blockId) throws IOException {
+        void write(RandomAccessFile raf, long blockId) throws IOException { //serialize node into 512 byte array and write
             byte[] block = new byte[BLOCK_SIZE];
             ByteBuffer buf = ByteBuffer.wrap(block);
-
             buf.putLong(blockId);
             buf.putLong(parentId);
             buf.putLong(numKeys);
-
             for (int i = 0; i < 19; i++) buf.putLong(keys[i]);
             for (int i = 0; i < 19; i++) buf.putLong(values[i]);
             for (int i = 0; i < 20; i++) buf.putLong(children[i]);
-
             raf.seek(blockId * BLOCK_SIZE);
             raf.write(block);
         }
@@ -89,7 +86,7 @@ public class Project3 {
         }
     }
 
-    private static void createFile(String[] args) throws IOException {
+    private static void createFile(String[] args) throws IOException { //create index file
         String filename = args[1];
         File file = new File(filename);
         if (file.exists()) {
@@ -256,12 +253,9 @@ public class Project3 {
                 System.out.println("Tree is empty.");
                 return;
             }
-
             long currentBlockId = header.rootId;
             while (currentBlockId != 0) {
-                Node node = readNode(raf, currentBlockId);
-
-                // Check current node for the key
+                Node node = readNode(raf, currentBlockId);               
                 for (int i = 0; i < node.numKeys; i++) {
                     if (node.keys[i] == targetKey) {
                         System.out.println("Key: " + node.keys[i] + ", Value: " + node.values[i]);
@@ -271,8 +265,6 @@ public class Project3 {
                         continue;
                     }
                 }
-
-                // Move to last child if key > all keys
                 currentBlockId = node.children[node.numKeys];
             }
 
