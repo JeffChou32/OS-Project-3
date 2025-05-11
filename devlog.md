@@ -41,3 +41,13 @@
 
 # 5/11/2025 11:26 AM
 - Plan to make finishing touches and get ready for submission
+- Test, comment
+
+# 5/11/2025 1:00 PM
+- reflections
+- learned to use RandomAccessFile instead of other data structures
+- Writing nodes back to disk using node.write 
+- header updates on root changes (after split)
+- file block numbers used instead of indexes/arrays
+- in order traversal for extract guarantees sorted output
+- csv formatting issues solved with trim()
