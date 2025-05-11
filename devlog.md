@@ -38,3 +38,6 @@
 - All numeric values are written and read as 8-byte big-endian longs
 - 19 keys/20 children per node as per minimum degree 10
 - Block and header formats 512 bytes, big-endian
+
+# 5/11/2025 11:26 AM
+- Plan to make finishing touches and get ready for submission
