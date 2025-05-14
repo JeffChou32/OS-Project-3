@@ -141,6 +141,7 @@ public class Project3 {
             }
         }
     }
+
     private static void insertNonFull(RandomAccessFile raf, Header header, Node node, long key, long value) throws IOException {
         int i = node.numKeys - 1;
 
@@ -221,6 +222,7 @@ public class Project3 {
             }
         }
     }
+    
     private static Node readNode(RandomAccessFile raf, long blockId) throws IOException { //reads a 512 byte block and extracts fields into Node
         byte[] block = new byte[BLOCK_SIZE];
         raf.seek(blockId * BLOCK_SIZE);
