@@ -222,7 +222,7 @@ public class Project3 {
             }
         }
     }
-    
+
     private static Node readNode(RandomAccessFile raf, long blockId) throws IOException { //reads a 512 byte block and extracts fields into Node
         byte[] block = new byte[BLOCK_SIZE];
         raf.seek(blockId * BLOCK_SIZE);
@@ -303,7 +303,6 @@ public class Project3 {
         }
         try (RandomAccessFile raf = new RandomAccessFile(indexFile, "r"); //open index file and output CSV
             BufferedWriter writer = new BufferedWriter(new FileWriter(outputFile))) {
-
             Header header = Header.read(raf);
             if (header.rootId == 0) {
                 System.out.println("Tree is empty.");
